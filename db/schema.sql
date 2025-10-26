@@ -1,0 +1,48 @@
+CREATE TABLE IF NOT EXISTS method (
+	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	name TEXT NOT NULL UNIQUE
+);
+INSERT OR IGNORE INTO method (name) VALUES ('GET'), ('POST'), ('PUT'), ('DELETE'), ('PATCH'), ('HEAD'), ('TRACE'), ('OPTIONS');
+
+CREATE TABLE IF NOT EXISTS collection (
+	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	name TEXT NOT NULL UNIQUE CHECK(LENGTH(TRIM(name))>0),
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	description TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS collection_name_index ON collection(name);
+
+CREATE TRIGGER IF NOT EXISTS update_collection_trigger
+AFTER UPDATE OF name, description ON collection
+FOR EACH ROW
+BEGIN
+	UPDATE collection
+	SET updated_at = DATETIME('NOW')
+	WHERE id = NEW.id;
+END;
+
+CREATE TABLE IF NOT EXISTS request (
+	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	url TEXT NOT NULL CHECK(LENGTH(TRIM(url))>0),
+	name TEXT NOT NULL CHECK(LENGTH(TRIM(name))>0),
+	method_id INTEGER NOT NULL,
+	collection_id INTEGER NOT NULL,
+	status_code INTEGER,
+	headers TEXT,
+	body TEXT,
+	body_type INTEGER NOT NULL DEFAULT 0,
+	created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY(method_id) REFERENCES method(id),
+	FOREIGN KEY(collection_id) REFERENCES collection(id) ON DELETE CASCADE
+);
+
+CREATE TRIGGER IF NOT EXISTS update_request_trigger
+AFTER UPDATE OF url, method_id, status_code, headers, body ON request
+FOR EACH ROW
+BEGIN
+	UPDATE request
+	SET updated_at = DATETIME('NOW')
+	WHERE id = NEW.id;
+END;
